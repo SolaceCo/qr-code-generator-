@@ -1,2 +1,2 @@
 # qr-code-generator-
-Free QR code too
+Free QR code tool
