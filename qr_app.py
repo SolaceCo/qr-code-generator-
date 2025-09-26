@@ -41,26 +41,28 @@ def index():
         data = request.form['data']
         fill_color = request.form.get('fill_color', '#000000')
         back_color = request.form.get('back_color', '#FFFFFF')
-        
+
         # Generate QR code
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
         qr.add_data(data)
         qr.make(fit=True)
-        
+
         # Create image with custom colors
         img = qr.make_image(fill_color=fill_color, back_color=back_color)
-        
+
         # Save to buffer
         buffered = BytesIO()
         img.save(buffered, format="PNG")
         img_str = buffered.getvalue()
-        
+
         # Return as downloadable image
         response = make_response(img_str)
         response.headers['Content-Type'] = 'image/png'
         response.headers['Content-Disposition'] = 'attachment; filename=qr_code.png'
         return response
-    
+
     return render_template_string(HTML_TEMPLATE)
+
+# No debug server for production
 
 
