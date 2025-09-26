@@ -1,19 +1,21 @@
 from flask import Flask, request, make_response, render_template_string
 import logging
 import sys
+import traceback
 
-# Try importing dependencies with logging
+# Try importing QR dependencies with detailed error logging
 try:
     import qrcode
     from io import BytesIO
     from PIL import Image
 except ImportError as e:
-    logging.error(f"Import failed: {str(e)}")
+    logging.error(f"Import failed: {str(e)}\n{traceback.format_exc()}")
     raise
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.DEBUG)  # Debug logs for Render
+logging.basicConfig(level=logging.DEBUG)
 app.logger.debug(f"Python version: {sys.version}")
+app.logger.debug("Starting QR Code Generator app")
 
 # HTML template
 HTML_TEMPLATE = """
@@ -47,13 +49,13 @@ HTML_TEMPLATE = """
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    app.logger.debug("Received request: %s", request.method)
+    app.logger.debug(f"Received request: {request.method}")
     if request.method == 'POST':
         try:
             data = request.form['data']
             fill_color = request.form.get('fill_color', '#000000')
             back_color = request.form.get('back_color', '#FFFFFF')
-            app.logger.debug("Generating QR with data: %s, fill: %s, back: %s", data, fill_color, back_color)
+            app.logger.debug(f"Generating QR with data: {data}, fill: {fill_color}, back: {back_color}")
 
             # Generate QR code
             qr = qrcode.QRCode(version=1, box_size=10, border=5)
@@ -74,10 +76,9 @@ def index():
             response.headers['Content-Disposition'] = 'attachment; filename=qr_code.png'
             return response
         except Exception as e:
-            app.logger.error(f"Error generating QR: {str(e)}")
+            app.logger.error(f"Error generating QR: {str(e)}\n{traceback.format_exc()}")
             return f"Error: {str(e)}", 500
 
     return render_template_string(HTML_TEMPLATE)
 
 # No debug server for production
-
