@@ -1,9 +1,19 @@
 from flask import Flask, request, make_response, render_template_string
-import qrcode
-from io import BytesIO
-from PIL import Image
+import logging
+import sys
+
+# Try importing dependencies with logging
+try:
+    import qrcode
+    from io import BytesIO
+    from PIL import Image
+except ImportError as e:
+    logging.error(f"Import failed: {str(e)}")
+    raise
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.DEBUG)  # Debug logs for Render
+app.logger.debug(f"Python version: {sys.version}")
 
 # HTML template
 HTML_TEMPLATE = """
@@ -37,32 +47,37 @@ HTML_TEMPLATE = """
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    app.logger.debug("Received request: %s", request.method)
     if request.method == 'POST':
-        data = request.form['data']
-        fill_color = request.form.get('fill_color', '#000000')
-        back_color = request.form.get('back_color', '#FFFFFF')
+        try:
+            data = request.form['data']
+            fill_color = request.form.get('fill_color', '#000000')
+            back_color = request.form.get('back_color', '#FFFFFF')
+            app.logger.debug("Generating QR with data: %s, fill: %s, back: %s", data, fill_color, back_color)
 
-        # Generate QR code
-        qr = qrcode.QRCode(version=1, box_size=10, border=5)
-        qr.add_data(data)
-        qr.make(fit=True)
+            # Generate QR code
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(data)
+            qr.make(fit=True)
 
-        # Create image with custom colors
-        img = qr.make_image(fill_color=fill_color, back_color=back_color)
+            # Create image with custom colors
+            img = qr.make_image(fill_color=fill_color, back_color=back_color)
 
-        # Save to buffer
-        buffered = BytesIO()
-        img.save(buffered, format="PNG")
-        img_str = buffered.getvalue()
+            # Save to buffer
+            buffered = BytesIO()
+            img.save(buffered, format="PNG")
+            img_str = buffered.getvalue()
 
-        # Return as downloadable image
-        response = make_response(img_str)
-        response.headers['Content-Type'] = 'image/png'
-        response.headers['Content-Disposition'] = 'attachment; filename=qr_code.png'
-        return response
+            # Return as downloadable image
+            response = make_response(img_str)
+            response.headers['Content-Type'] = 'image/png'
+            response.headers['Content-Disposition'] = 'attachment; filename=qr_code.png'
+            return response
+        except Exception as e:
+            app.logger.error(f"Error generating QR: {str(e)}")
+            return f"Error: {str(e)}", 500
 
     return render_template_string(HTML_TEMPLATE)
 
 # No debug server for production
-
 
